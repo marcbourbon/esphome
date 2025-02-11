@@ -1,0 +1,193 @@
+substitutions:
+  name: victronve
+  device_description: "Monitor and control a victron device serial port"
+
+esphome:
+  name: ${name}
+  comment: ${device_description}
+  min_version: '2024.6.0'
+  project:
+    name: "victron.connect"
+    version: '2.1.0'
+  platformio_options:
+    build_flags: -DBOARD_HAS_PSRAM
+    board_build.arduino.memory_type: qio_opi
+    board_build.f_flash: 80000000L
+    board_build.flash_mode: qio 
+    board_build.partitions: huge_app.csv
+
+esp32:
+  board: esp32-s3-devkitc-1
+  framework:
+    type: arduino
+
+wifi:
+  output_power: '8.5dB'
+  power_save_mode: none
+  networks:
+    - ssid: "Livebox-8930"
+      password: "tomemy0123456789"
+
+ota:
+  platform: esphome
+
+logger:
+  level: DEBUG
+  baud_rate: 115200  # Désactive la sortie des logs sur UART0 (évite les conflits)
+
+api:
+
+mqtt:
+   broker: 'raspberrypi'
+   username: "marc"
+   password: "tomemy"
+   id: "victronve"
+
+web_server:
+  port: 80
+  
+external_components:
+  - source: github://KinDR007/VictronMPPT-ESPHOME@main
+
+uart:
+  id: uart_1
+  tx_pin: 1
+  rx_pin: 2
+  baud_rate: 19200
+  rx_buffer_size: 256
+
+victron:
+  id: victron0
+  uart_id: uart_1
+  throttle: 10s
+
+sensor:
+  - platform: victron
+    victron_id: victron0
+    instantaneous_power:
+      name: "instantaneous_power"
+    charging_mode_id:
+      name: "Mode de Chargement ID"
+    error_code:
+      name: "Code d'Erreur"
+    ac_out_current:
+      name: "Courant Sortant AC"
+      id: ac_current
+    ac_out_voltage:
+      name: "Tension Sortante AC"
+      id: ac_voltage
+    yield_total:
+      name: "Production Totale"
+    yield_today:
+      name: "Production Aujourd'hui"
+      id: id_yield_today
+    max_power_today:
+      name: "Puissance Solaire Maximale Aujourd'hui"
+      id: id_max_power_today
+    yield_yesterday:
+      name: "Production Solaire Hier"
+    max_power_yesterday:
+      name: "Puissance Solaire Maximale Hier"
+    day_number:
+      name: "Jour Numéro"
+    battery_current:
+      name: "01_Courant Batterie"
+    panel_power:
+      name: "Puissance Panneaux Solaires"
+      id: id_panel_power
+      on_value:
+        - mqtt.publish_json:
+            topic: domoticz/in
+            payload: |-
+              root["command"] = "udevice";
+              root["idx"] = id(idx_panel_power).state;
+              root["nvalue"] = 0;
+              root["svalue"] = std::to_string(id(id_panel_power).state) + ";" + std::to_string(id(id_yield_today).state);
+    battery_voltage:
+      name: "00_Tension Batterie"
+      id: id_battery_voltage
+      on_value:
+        - mqtt.publish_json:
+            topic: domoticz/in
+            payload: |-
+              root["command"] = "udevice";
+              root["idx"] = id(idx_battery_voltage).state;
+              root["nvalue"] = 0;
+              root["svalue"] = std::to_string(id(id_battery_voltage).state);        
+    panel_voltage:
+      name: "Tension Panneaux"
+
+  - platform: template
+    name: "Puissance AC Calculé"
+    id: id_ac_power
+    on_value:
+      - mqtt.publish_json:
+          topic: domoticz/in
+          payload: |-
+            root["command"] = "udevice";
+            root["idx"] = id(idx_ac_power).state;
+            root["nvalue"] = 0;
+            root["svalue"] = std::to_string(id(id_ac_power).state) + ";" + std::to_string(id(id_ac_power).state);
+    lambda: |-
+       auto val = id(ac_voltage).state * id(ac_current).state;
+       if (isnan(val))
+          return {};
+       return val;
+    update_interval: '10s'
+
+text_sensor:
+  - platform: victron
+    victron_id: victron0
+    serial_number:
+      name: "16_Numéro de Série"
+    firmware_version_24bit:
+      name: "17_Version Firmware 24bits"
+    charging_mode:
+      name: "18_Mode de Charge"
+    error:
+      name: "19_Erreur"
+    device_mode:
+      name: "20_Mode Dispositif"
+
+number:
+  - platform: template
+    name: "21_IDX Puissance Panneaux"
+    id: idx_panel_power
+    min_value: 0
+    max_value: 9999
+    step: 1
+    mode: box
+    restore_value: true
+    set_action:
+      - lambda: |-
+          int new_value = static_cast<int>(round(x));  // Conversion en entier
+          id(idx_panel_power).publish_state(new_value);  // Mise à jour de l'état
+          ESP_LOGI("IDX", "Nouvelle valeur sauvegardée IDX Mode de Chargement ID: %d", new_value);
+
+  - platform: template
+    name: "22_Puissance AC Calculé"
+    id: idx_ac_power
+    min_value: 0
+    max_value: 9999
+    step: 1
+    mode: box
+    restore_value: true
+    set_action:
+      - lambda: |-
+          int new_value = static_cast<int>(round(x));  // Conversion en entier
+          id(idx_ac_power).publish_state(new_value);  // Mise à jour de l'état
+          ESP_LOGI("IDX", "Nouvelle valeur sauvegardée IDX Puissance AC Calculé ID: %d", new_value);
+
+  - platform: template
+    name: "23_Tension Batterie"
+    id: idx_battery_voltage
+    min_value: 0
+    max_value: 9999
+    step: 1
+    mode: box
+    restore_value: true
+    set_action:
+      - lambda: |-
+          int new_value = static_cast<int>(round(x));  // Conversion en entier
+          id(idx_battery_voltage).publish_state(new_value);  // Mise à jour de l'état
+          ESP_LOGI("IDX", "Nouvelle valeur sauvegardée IDX Puissance AC Calculé ID: %d", new_value);                       
