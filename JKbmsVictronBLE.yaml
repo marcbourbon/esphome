@@ -1,13 +1,15 @@
 substitutions:
-  name: jk-bms-serre
+  #name: bms-maison
+  name: bms-jardin
   device_description: "Monitor and control a JK-BMS v11 via bluetooth"
   external_components_source: github://syssi/esphome-jk-bms@main
-  mac_address: C8:47:80:1B:51:14
-  #mac_address: 98:DA:20:06:45:48
   # Please use "JK02_24S" if you own a old JK-BMS < hardware version 11.0 (hardware version >= 6.0 and < 11.0)
   # Please use "JK02_32S" if you own a new JK-BMS >= hardware version 11.0 (f.e. JK-B2A8S20P hw 11.XW, sw 11.26)
   # Please use "JK04" if you have some old JK-BMS <= hardware version 3.0 (f.e. JK-B2A16S hw 3.0, sw. 3.3.0)
   protocol_version: JK02_32S
+
+  mac_address: C8:47:80:1B:51:14 # bms jardin
+  #mac_address: 98:DA:20:06:45:48 # bms maison
 
 esphome:
   name: ${name}
@@ -22,15 +24,6 @@ esphome:
     board_build.f_flash: 80000000L
     board_build.flash_mode: qio 
     # board_build.partitions: huge_app.csv
-
-# lignes originales qui viens de l'exemple github
-# esp32:
-#   board: seeed_xiao_esp32s3
-#   framework:
-#     type: esp-idf
-# ligne rajoute par moi sur dock seed studio
-# avantage j'ai le bouton ota
-# sur le log j'ai erreur ERROR: Too many messages queued
 
 esp32:
   board: esp32-s3-devkitc-1
@@ -47,8 +40,6 @@ wifi:
       password: "tomemy0123456789"
     - ssid: "TP-Link_6444"
       password: "24046435"
-    - ssid: "Livebox-8930_D6BB76"
-      password: "tomemy0123456789"
     - ssid: "TP-Link_6C06"
       password: "12731978"
 
@@ -60,25 +51,32 @@ ota:
       - logger.log: "BLE connection suspended for OTA update"
 
 logger:
-  level: DEBUG
+  level: WARN
   logs:
-    esp32_ble_tracker: INFO
-    esp32_ble_client: INFO
+     esp32_ble_tracker: WARN
+     esp32_ble_client: WARN
 
-# If you don't use Home Assistant please remove this `api` section and uncomment the `mqtt` component!
 api:
+  reboot_timeout: 0s
 
 mqtt:
-   broker: 192.168.1.16
+   broker: domohub.local
    username: "marc"
    password: "tomemy"
    id: "jkbmstest"
 
 web_server:
   port: 80
-  
+
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: "Europe/Paris" # Adaptez à votre fuseau horaire
+
 esp32_ble_tracker:
   scan_parameters:
+    # interval: 1100ms
+    # window: 110ms
     active: false
 
 ble_client:
@@ -88,21 +86,8 @@ ble_client:
 jk_bms_ble:
   - ble_client_id: client0
     protocol_version: ${protocol_version}
-    throttle: 5s
+    throttle: 10s
     id: bms0
-
-binary_sensor:
-  - platform: jk_bms_ble
-    # balancing:
-    #   name: "${name} balancing"
-    # charging:
-    #   name: "${name} charging"
-    # discharging:
-    #   name: "${name} discharging"
-    # heating:
-    #   name: "${name} heating"
-    # online_status:
-    #   name: "${name} online status"
 
 button:
   - platform: jk_bms_ble
@@ -110,81 +95,11 @@ button:
     #   name: "${name} retrieve settings"
     # retrieve_device_info:
     #   name: "${name} retrieve device info"
+  - platform: restart
+    name: "Reboot"
+    id: solarrestart
 
 number:
-
-  # - platform: jk_bms_ble
-  #   jk_bms_ble_id: bms0
-    # balance_trigger_voltage:
-    #   name: "${name} balance trigger voltage"
-    # cell_count:
-    #   name: "${name} cell count"
-    # total_battery_capacity:
-    #   name: "${name} total battery capacity"
-    # cell_voltage_overvoltage_protection:
-    #   name: "${name} cell voltage overvoltage protection"
-    # cell_voltage_overvoltage_recovery:
-    #   name: "${name} cell voltage overvoltage recovery"
-    # cell_voltage_undervoltage_protection:
-    #   name: "${name} cell voltage undervoltage protection"
-    # cell_voltage_undervoltage_recovery:
-    #   name: "${name} cell voltage undervoltage recovery"
-    # balance_starting_voltage:
-    #   name: "${name} balance starting voltage"
-    # voltage_calibration:
-    #   name: "${name} voltage calibration"
-    # current_calibration:
-    #   name: "${name} current calibration"
-    # power_off_voltage:
-    #   name: "${name} power off voltage"
-    # max_balance_current:
-    #   name: "${name} max balance current"
-    # max_charge_current:
-    #   name: "${name} max charge current"
-    # max_discharge_current:
-    #   name: "${name} max discharge current"
-    # smart_sleep_voltage:
-    #   name: "${name} smart sleep voltage"
-    # cell_soc100_voltage:
-    #   name: "${name} cell soc100 voltage"
-    # cell_soc0_voltage:
-    #   name: "${name} cell soc0 voltage"
-    # cell_request_charge_voltage:
-    #   name: "${name} cell request charge voltage"
-    # cell_request_float_voltage:
-    #   name: "${name} cell request float voltage"
-    # cell_request_charge_voltage_time:
-    #   name: "${name} cell request charge voltage time"
-    # cell_request_float_voltage_time:
-    #   name: "${name} cell request float voltage time"
-    # charge_overcurrent_protection_delay:
-    #   name: "${name} charge overcurrent protection delay"
-    # charge_overcurrent_protection_recovery_time:
-    #   name: "${name} charge overcurrent protection recovery time"
-    # discharge_overcurrent_protection_delay:
-    #   name: "${name} discharge overcurrent protection delay"
-    # discharge_overcurrent_protection_recovery_time:
-    #   name: "${name} discharge overcurrent protection recovery time"
-    # short_circuit_protection_delay:
-    #   name: "${name} short circuit protection delay"
-    # short_circuit_protection_recovery_time:
-    #   name: "${name} short circuit protection recovery time"
-    # charge_overtemperature_protection:
-    #   name: "${name} charge overtemperature protection"
-    # charge_overtemperature_protection_recovery:
-    #   name: "${name} charge overtemperature protection recovery"
-    # discharge_overtemperature_protection:
-    #   name: "${name} discharge overtemperature protection"
-    # discharge_overtemperature_protection_recovery:
-    #   name: "${name} discharge overtemperature protection recovery"
-    # charge_undertemperature_protection:
-    #   name: "${name} charge undertemperature protection"
-    # charge_undertemperature_protection_recovery:
-    #   name: "${name} charge undertemperature protection recovery"
-    # power_tube_overtemperature_protection:
-    #   name: "${name} power tube overtemperature protection"
-    # power_tube_overtemperature_protection_recovery:
-    #   name: "${name} power tube overtemperature protection recovery"
   - platform: template
     name: "10_IDX Delta Cell Voltage"
     id: idx_delta_cell_voltage
@@ -283,20 +198,34 @@ number:
           id(idx_state_of_charge).publish_state(new_value);
           ESP_LOGI("IDX", "Nouvelle valeur sauvegardée IDX State of Charge: %d", new_value);
 
+  - platform: template
+    name: "17_IDX GPIO RELAIS AC"
+    id: idx_gpio_AC_IN
+    min_value: 0
+    max_value: 9999
+    step: 1
+    mode: box
+    restore_value: true
+    set_action:
+      - lambda: |-
+          int new_value = static_cast<int>(round(x));
+          id(idx_gpio_AC_IN).publish_state(new_value);
+          ESP_LOGI("IDX", "Nouvelle valeur sauvegardée IDX State of Charge: %d", new_value);
+
 sensor:
+  - platform: template
+    name: "ESP32 Free Heap"
+    lambda: |-
+      return (float) ESP.getFreeHeap();
+    update_interval: 60s    
+  - platform: uptime
+    name: "Temps de fonctionnement"
+    id: uptime_sensor
   - platform: wifi_signal
     name: "09_WiFi Signal Strength"
     update_interval: 60s
   - platform: jk_bms_ble
     jk_bms_ble_id: bms0
-    # min_cell_voltage:
-    #   name: "${name} min cell voltage"
-    # max_cell_voltage:
-    #   name: "${name} max cell voltage"
-    # min_voltage_cell:
-    #   name: "${name} min voltage cell"
-    # max_voltage_cell:
-    #   name: "${name} max voltage cell"
   - platform: jk_bms_ble
     jk_bms_ble_id: bms0
 
@@ -316,104 +245,6 @@ sensor:
               ESP_LOGI("MQTT", "IDX Delta Cell Voltage = 0, publication annulée.");
             }
    
-    # average_cell_voltage:
-    #   name: "${name} average cell voltage"
-#    cell_voltage_1:
-#      name: "${name} cell voltage 1"
-#    cell_voltage_2:
-#      name: "${name} cell voltage 2"
-#    cell_voltage_3:
-#      name: "${name} cell voltage 3"
-#    cell_voltage_4:
-#      name: "${name} cell voltage 4"
-#    cell_voltage_5:
-#      name: "${name} cell voltage 5"
-#    cell_voltage_6:
-#      name: "${name} cell voltage 6"
-#    cell_voltage_7:
-#      name: "${name} cell voltage 7"
-#    cell_voltage_8:
-#      name: "${name} cell voltage 8"
-#    cell_voltage_9:
-#      name: "${name} cell voltage 9"
-#    cell_voltage_10:
-#      name: "${name} cell voltage 10"
-#    cell_voltage_11:
-#      name: "${name} cell voltage 11"
-#    cell_voltage_12:
-#      name: "${name} cell voltage 12"
-#    cell_voltage_13:
-#      name: "${name} cell voltage 13"
-#    cell_voltage_14:
-#      name: "${name} cell voltage 14"
-#    cell_voltage_15:
-#      name: "${name} cell voltage 15"
-#    cell_voltage_16:
-#      name: "${name} cell voltage 16"
-#    cell_voltage_17:
-#      name: "${name} cell voltage 17"
-#    cell_voltage_18:
-#     name: "${name} cell voltage 18"
-#    cell_voltage_19:
-#      name: "${name} cell voltage 19"
-#    cell_voltage_20:
-#      name: "${name} cell voltage 20"
-#    cell_voltage_21:
-#      name: "${name} cell voltage 21"
-#   cell_voltage_22:
-#      name: "${name} cell voltage 22"
-#    cell_voltage_23:
-#      name: "${name} cell voltage 23"
-#    cell_voltage_24:
-#      name: "${name} cell voltage 24"
-#    cell_resistance_1:
-#      name: "${name} cell resistance 1"
-#    cell_resistance_2:
-#      name: "${name} cell resistance 2"
-#    cell_resistance_3:
-#      name: "${name} cell resistance 3"
-#    cell_resistance_4:
-#      name: "${name} cell resistance 4"
-#    cell_resistance_5:
-#      name: "${name} cell resistance 5"
-#    cell_resistance_6:
-#      name: "${name} cell resistance 6"
-#    cell_resistance_7:
-#      name: "${name} cell resistance 7"
-#    cell_resistance_8:
-#      name: "${name} cell resistance 8"
-#    cell_resistance_9:
-#      name: "${name} cell resistance 9"
-#   cell_resistance_10:
-#      name: "${name} cell resistance 10"
-#    cell_resistance_11:
-#      name: "${name} cell resistance 11"
-#    cell_resistance_12:
-#      name: "${name} cell resistance 12"
-#    cell_resistance_13:
-#      name: "${name} cell resistance 13"
-#    cell_resistance_14:
-#      name: "${name} cell resistance 14"
-#    cell_resistance_15:
-#      name: "${name} cell resistance 15"
-#    cell_resistance_16:
-#      name: "${name} cell resistance 16"
-#    cell_resistance_17:
-#      name: "${name} cell resistance 17"
-#   cell_resistance_18:
-#     name: "${name} cell resistance 18"
-#   cell_resistance_19:
-#      name: "${name} cell resistance 19"
-#    cell_resistance_20:
-#      name: "${name} cell resistance 20"
-#   cell_resistance_21:
-#      name: "${name} cell resistance 21"
-#    cell_resistance_22:
-#      name: "${name} cell resistance 22"
-#    cell_resistance_23:
-#      name: "${name} cell resistance 23"
-#    cell_resistance_24:
-#name: "${name} cell resistance 24"
     total_voltage:
       name: "02_total voltage"
       id: id_total_voltage 
@@ -445,8 +276,7 @@ sensor:
             } else {
               ESP_LOGI("MQTT", "IDX Current = 0, publication annulée.");
             }
-    # heating_current:
-    #   name: "${name} heating current"
+
     power:
       name: "04_power"
       id: id_power
@@ -462,10 +292,7 @@ sensor:
             } else {
               ESP_LOGI("MQTT", "IDX Power = 0, publication annulée.");
             }
-    # charging_power:
-    #   name: "${name} charging power"
-    # discharging_power:
-    #   name: "${name} discharging power"
+
     temperature_sensor_1:
       name: "05_temperature sensor 1"
       id: id_temperature_sensor_1
@@ -498,16 +325,6 @@ sensor:
               ESP_LOGI("MQTT", "IDX Température 2 = 0, publication annulée.");
             }
 
-#    temperature_sensor_3:
-#      name: "${name} temperature sensor 3"
-#    temperature_sensor_4:
-#      name: "${name} temperature sensor 4"
-#    temperature_sensor_5:
-#     name: "${name} temperature sensor 5"
-#    power_tube_temperature:
-#      name: "${name} power tube temperature"
-#    balancing:
-#      name: "${name} balancing"
     state_of_charge:
       name: "07_state of charge"
       id: id_state_of_charge
@@ -524,58 +341,163 @@ sensor:
               ESP_LOGI("MQTT", "IDX State of charge = 0, publication annulée.");
             }
 
-
     capacity_remaining:
       name: "08_capacity remaining"
       id: id_capacity_remaining
-#    total_battery_capacity_setting:
-#      name: "${name} total battery capacity setting"
-#    charging_cycles:
-#      name: "${name} charging cycles"
-#    total_charging_cycle_capacity:
-#      name: "${name} total charging cycle capacity"
-#    total_runtime:
-#      name: "${name} total runtime"
-#    balancing_current:
-#      name: "${name} balancing current"
-#    errors_bitmask:
-#      name: "${name} errors bitmask"
-#   emergency_time_countdown:
-#      name: "${name} emergency time countdown"
+    
+    charging_cycles:
+      name: "${name} charging cycles"
+
+text_sensor:
+  - platform: template
+    name: "Temps de fonctionnement formaté"
+    id: uptime_formatted
+    lambda: |-
+      int uptime_seconds = id(uptime_sensor).state;
+      int hours = uptime_seconds / 3600;
+      int minutes = (uptime_seconds % 3600) / 60;
+      char uptime_str[10];
+      snprintf(uptime_str, sizeof(uptime_str), "%02dh%02dm", hours, minutes);
+      return std::string(uptime_str);
+    
+  - platform: wifi_info
+    ip_address:
+      name: "ESP IP Address"
+
+  - platform: template
+    name: "Current Time"
+    id: current_time
+    lambda: |-
+      char buffer[9]; // Buffer to hold the time string
+      auto now = id(sntp_time).now();
+      snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d",
+               now.hour,
+               now.minute,
+               now.second);
+      return std::string(buffer);
+    update_interval: 60s
 
 switch:
   - platform: jk_bms_ble
-    # charging:
-    #   name: "${name} charging"
-    # discharging:
-    #   name: "${name} discharging"
-    # balancer:
-    #   name: "${name} balancer"
-    # emergency:
-    #   name: "${name} emergency"
-    # heating:
-    #   name: "${name} heating"
-    # disable_temperature_sensors:
-    #   name: "${name} disable temperature sensors"
-    # display_always_on:
-    #   name: "${name} display always on"
-    # smart_sleep:
-    #   name: "${name} smart sleep"
-    # disable_pcl_module:
-    #   name: "${name} disable pcl module"
-    # timed_stored_data:
-    #   name: "${name} timed stored data"
-    # charging_float_mode:
-    #   name: "${name} charging float mode"
 
   - platform: ble_client
     ble_client_id: client0
     id: ble_client_switch0
     # name: "${name} enable bluetooth connection"
+#------------------------------------------------------------------------------------------------------
+# a décommenter pour bms-maison
+#------------------------------------------------------------------------------------------------------
+#   - platform: gpio
+#     pin: 1
+#     name: "Relais AC"
+#     id: id_relais_AC
+#     inverted: false    
+#     # État initial du GPIO
+#     # Mode de restauration après redémarrage
+#     restore_mode: RESTORE_DEFAULT_ON
+#     on_turn_on:
+#         - lambda: |-
+#             if (id(idx_delta_cell_voltage).state != 0) {
+#               mqtt::global_mqtt_client->publish_json("domoticz/in", [](JsonObject root) {
+#                 root["command"] = "udevice";
+#                 root["idx"] = id(idx_gpio_AC_IN).state;
+#                 root["nvalue"] = 0;
+#                 root["svalue"] = 1;
+#               });
+#             } else {
+#               ESP_LOGI("MQTT", "IDX relais AC = 0, publication annulée.");
+#             }
+#     on_turn_off:
+#         - lambda: |-
+#             if (id(idx_delta_cell_voltage).state != 0) {
+#               mqtt::global_mqtt_client->publish_json("domoticz/in", [](JsonObject root) {
+#                 root["command"] = "udevice";
+#                 root["idx"] = id(idx_gpio_AC_IN).state;
+#                 root["nvalue"] = 0;
+#                 root["svalue"] = 0;
+#               });
+#             } else {
+#               ESP_LOGI("MQTT", "IDX relais AC = 0, publication annulée.");
+#             }
 
-# text_sensor:
-#   - platform: jk_bms_ble
-#     errors:
-#       name: "${name} errors"
-#     total_runtime_formatted:
-#       name: "${name} total runtime formatted"
+# globals:
+#   - id: soc_min
+#     type: int
+#     restore_value: true
+#     initial_value: '20'  # Valeur par défaut pour soc_mini
+#   - id: soc_max
+#     type: int
+#     restore_value: true
+#     initial_value: '80'  # Valeur par défaut pour soc_max
+#   - id: gpio1_state
+#     type: bool
+#     initial_value: "false"
+
+# binary_sensor:
+#   - platform: gpio
+#     pin: 2
+#     name: "Heures Creuses signal Inverse"
+#     id: id_gpio_heures_creuses
+
+# select:
+#   - platform: template
+#     name: "Minimum SOC"
+#     id: soc_min_selector
+#     options:
+#       - "0"
+#       - "10"
+#       - "20"
+#       - "30"
+#       - "40"
+#       - "50"
+#       - "60"
+#       - "70"
+#       - "80"
+#       - "90"
+#       - "100"
+#     restore_value: true
+#     optimistic: true
+#     on_value:
+#       - lambda: |-
+#           id(soc_min) = std::stoi(x.c_str());  // Utilisation de std::stoi pour convertir en int
+#           ESP_LOGD("select", "Nouveau soc_min: %d", id(soc_min));
+#       - delay: 1s
+
+#   - platform: template
+#     name: "Maximum SOC"
+#     id: soc_max_selector
+#     options:
+#       - "0"
+#       - "10"
+#       - "20"
+#       - "30"
+#       - "40"
+#       - "50"
+#       - "60"
+#       - "70"
+#       - "80"
+#       - "90"
+#       - "100"
+#     restore_value: true
+#     optimistic: true
+#     on_value:
+#       - lambda: |-
+#           id(soc_max) = std::stoi(x.c_str());  // Utilisation de std::stoi pour convertir en int
+#           ESP_LOGD("select", "Nouveau soc_max: %d", id(soc_max));
+#       - delay: 1s
+
+# interval:
+#   - interval: 600s
+#     then:
+#       - lambda: |-
+#           float soc = id(id_state_of_charge).state;  // Lire le SoC en float
+
+#           if (soc <= id(soc_min) || (!id(id_gpio_heures_creuses).state && soc < id(soc_max))) {
+#             id(id_relais_AC).turn_on();
+#           } else {
+#             id(id_relais_AC).turn_off();
+#           };
+
+#------------------------------------------------------------------------------------------------------
+# a décommenter pour bms-maison
+#------------------------------------------------------------------------------------------------------
